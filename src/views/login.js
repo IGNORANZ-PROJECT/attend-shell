@@ -174,11 +174,6 @@ export function renderLogin(){
       const btnReset = document.getElementById("btnReset");
       if (btnReset) btnReset.disabled = true;
       try{
-        const methods = await fx.fetchSignInMethodsForEmail(auth, emailv);
-        if (!methods || methods.length === 0){
-          toast("このメールアドレスは未登録です。LOGIN/REGISTERを試してください。", "warn");
-          return;
-        }
         await fx.sendPasswordResetEmail(auth, emailv);
         toast("再設定メールを送信しました。迷惑メールも確認してください。", "ok");
       }catch(e){
