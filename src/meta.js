@@ -1,6 +1,6 @@
 export const APP = {
   name: "ATTEND//SHELL",
-  version: "v1.5.7-PROTOTYPE",
+  version: "v1.5.9-PROTOTYPE",
   uiTag: "©IGNORANZ PROJECT",
   // Root admin emails must match firestore.rules isRoot()
   rootAdminEmails: ["admin-root@attend.local", "admin-admin@attend.local"],
