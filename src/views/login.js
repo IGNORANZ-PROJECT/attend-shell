@@ -104,7 +104,14 @@ export function renderLogin(){
         const code = getErrCode(e);
         console.error(e);
 
-        if (code === "auth/user-not-found" || code === "auth/invalid-credential" || code === "auth/invalid-login-credentials"){
+        const tryRegisterCodes = new Set([
+          "auth/user-not-found",
+          "auth/invalid-credential",
+          "auth/invalid-login-credentials",
+          "auth/wrong-password"
+        ]);
+
+        if (tryRegisterCodes.has(code)){
           try{
             await fx.createUserWithEmailAndPassword(auth, v.emailv, v.pw);
             toast("アカウントを作成してログインしました。", "ok");
@@ -116,13 +123,29 @@ export function renderLogin(){
               toast("このメールアドレスは既に登録済みです。LOGINするかPW-RESETを使ってください。", "warn");
               return;
             }
+            if (code2 === "auth/weak-password"){
+              toast("パスワードが弱すぎます。6文字以上で再入力してください。", "warn");
+              return;
+            }
+            if (code2 === "auth/invalid-email"){
+              toast("メールアドレスの形式が正しくありません。", "warn");
+              return;
+            }
             toast("アカウント作成に失敗しました。入力内容を確認してください。", "error");
             return;
           }
         }
 
-        if (code === "auth/wrong-password"){
-          toast("LOGINに失敗しました。パスワードが違う可能性があります（PW-RESET推奨）。", "error");
+        if (code === "auth/invalid-email"){
+          toast("メールアドレスの形式が正しくありません。", "warn");
+          return;
+        }
+        if (code === "auth/user-disabled"){
+          toast("このアカウントは無効化されています。管理者に確認してください。", "error");
+          return;
+        }
+        if (code === "auth/too-many-requests"){
+          toast("試行回数が多すぎます。しばらく待って再試行してください。", "warn");
           return;
         }
 
@@ -148,12 +171,42 @@ export function renderLogin(){
     document.getElementById("btnReset").onclick = async () => {
       const emailv = (elEmail.value || "").trim();
       if (!emailv){ toast("登録済みのメールアドレスを入力してください。", "warn"); return; }
+      const btnReset = document.getElementById("btnReset");
+      if (btnReset) btnReset.disabled = true;
       try{
+        const methods = await fx.fetchSignInMethodsForEmail(auth, emailv);
+        if (!methods || methods.length === 0){
+          toast("このメールアドレスは未登録です。LOGIN/REGISTERを試してください。", "warn");
+          return;
+        }
         await fx.sendPasswordResetEmail(auth, emailv);
-        toast("再設定メールを送信しました。", "ok");
+        toast("再設定メールを送信しました。迷惑メールも確認してください。", "ok");
       }catch(e){
         console.error(e);
+        const code = getErrCode(e);
+        if (code === "auth/invalid-email"){
+          toast("メールアドレスの形式が正しくありません。", "warn");
+          return;
+        }
+        if (code === "auth/user-not-found"){
+          toast("このメールアドレスは未登録です。LOGIN/REGISTERを試してください。", "warn");
+          return;
+        }
+        if (code === "auth/user-disabled"){
+          toast("このアカウントは無効化されています。管理者に確認してください。", "error");
+          return;
+        }
+        if (code === "auth/too-many-requests"){
+          toast("試行回数が多すぎます。しばらく待って再試行してください。", "warn");
+          return;
+        }
+        if (code === "auth/network-request-failed"){
+          toast("通信に失敗しました。回線を確認して再試行してください。", "warn");
+          return;
+        }
         toast("再設定メールの送信に失敗しました。", "error");
+      } finally {
+        if (btnReset) btnReset.disabled = false;
       }
     };
   };

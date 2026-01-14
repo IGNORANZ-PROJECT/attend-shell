@@ -22,8 +22,9 @@ export async function renderUser(profile){
 
   // best-effort: create mapping docs
   try{
+    const needsBind = !profile.uid || profile.uid !== me.uid;
     await ensureUserDoc({ uid: me.uid, email: me.email, termId, no4: profile.no4, groupId: profile.groupId });
-    if (!profile.uid) await bindStudentUid(termId, profile.no4, me.uid);
+    if (needsBind) await bindStudentUid(termId, profile.no4, me.uid);
   }catch(_){}
 
   const today = (new Date()).toISOString().slice(0,10);

@@ -89,18 +89,17 @@ async function route(global){
   }
 
   try{
-    if (profile.uid && profile.uid !== user.uid){
-      await fx.signOut(auth);
-      setLogoutVisible(false);
-      renderLogin();
-      toast("この4桁番号は別アカウントに紐付いています。管理者に確認してください。", "error");
-      return;
-    }
+    const needsBind = !profile.uid || profile.uid !== user.uid;
     await ensureUserDoc({ uid: user.uid, email: user.email, termId, no4: profile.no4, groupId: profile.groupId });
-    if (!profile.uid){
+    if (needsBind){
       await bindStudentUid(termId, profile.no4, user.uid);
     }
-  }catch(e){ console.warn(e); }
+  }catch(e){
+    console.warn(e);
+    if (profile.uid && profile.uid !== user.uid){
+      toast("学籍番号の紐付け更新に失敗しました。管理者に確認してください。", "warn");
+    }
+  }
 
   await renderUser(profile);
 
