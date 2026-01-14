@@ -5,7 +5,7 @@ import { setMetaLine, setLogoutVisible, setWhoAmI, toast, hookAboutButton } from
 import { renderLogin } from "./views/login.js";
 import { renderUser } from "./views/user.js";
 import { renderAdmin } from "./views/admin.js";
-import { getGlobal, watchGlobal, getStudent, ensureUserDoc, watchUserDoc, bindStudentUid } from "./data.js";
+import { getGlobal, watchGlobal, getStudent, listStudents, ensureUserDoc, getUserDoc, watchUserDoc, bindStudentUid } from "./data.js";
 
 setMetaLine(APP.version);
 hookAboutButton();
@@ -62,12 +62,41 @@ async function route(global){
     return;
   }
 
-  const no4 = recall(STORAGE.lastNo4).trim();
+  let no4 = recall(STORAGE.lastNo4).trim();
+  let no4Reason = "";
+  if (no4.length !== 4){
+    try{
+      const ud = await getUserDoc(user.uid);
+      const udNo4 = (ud?.no4 || "").trim();
+      if (ud && ud.termId === termId && udNo4.length === 4){
+        no4 = udNo4;
+        remember(STORAGE.lastNo4, no4);
+      }
+    }catch(e){ console.warn(e); }
+  }
+  if (no4.length !== 4){
+    try{
+      const emailLower = (user.email || "").toLowerCase();
+      if (emailLower){
+        const students = await listStudents(termId);
+        const matches = students.filter(s => (s.email || "").toLowerCase() === emailLower);
+        if (matches.length === 1){
+          const found = (matches[0].no4 || "").trim();
+          if (found.length === 4){
+            no4 = found;
+            remember(STORAGE.lastNo4, no4);
+          }
+        }else if (matches.length > 1){
+          no4Reason = "同じメールが複数登録されています。管理者に確認してください。";
+        }
+      }
+    }catch(e){ console.warn(e); }
+  }
   if (no4.length !== 4){
     await fx.signOut(auth);
     setLogoutVisible(false);
     renderLogin();
-    toast("4桁番号の情報がありません。もう一度ログインしてください。", "warn");
+    toast(no4Reason || "4桁番号の情報がありません。もう一度ログインしてください。", "warn");
     return;
   }
 

@@ -60,6 +60,13 @@ export async function ensureUserDoc({uid, email, termId, no4, groupId}){
   }, { merge: true });
 }
 
+export async function getUserDoc(uid){
+  const ref = fx.doc(db, `users/${uid}`);
+  const snap = await fx.getDoc(ref);
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() };
+}
+
 export function watchUserDoc(uid, onChange, onError){
   const ref = fx.doc(db, `users/${uid}`);
   return fx.onSnapshot(ref, (snap)=>{
